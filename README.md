@@ -2,6 +2,8 @@
 
 A Chip-8 emulator implemented in C# with a WebAssembly front end. The core interpreter runs inside `Chip8.Emulator.Core` while `Chip8.Emulator.Web` hosts a Blazor UI exposing the display, HUD telemetry, and keyboard controls directly in the browser.
 
+![Chip-8 Emulator Screenshot](./emulator.png)
+
 ## Requirements
 - .NET 8 SDK
 - Node.js 18+ (for Playwright integration tests)
