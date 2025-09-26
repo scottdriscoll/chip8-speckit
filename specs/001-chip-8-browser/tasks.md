@@ -76,6 +76,11 @@
 - [x] T022 [P] Add performance validation in `tests/Integration/Performance/FrameBudgetTests.cs` ensuring HUD render completes within 3ms per tick and CPU <50%.
 - [x] T023 [P] Update manual QA checklist in `docs/manual-testing.md` with HUD/audio scenarios and failure logging steps.
 - [x] T024 Run full test matrix (`dotnet test` + `npx playwright test`) and update `CHANGELOG.md` with feature summary. *(dotnet test succeeds; Playwright suite prepared with skipped specs pending UI implementation.)*
+- [ ] T025 Evaluate flicker-reduction strategy (frame buffer persistence, 60Hz render sync, optional smoothing toggle) and document findings in `docs/flicker-plan.md`.
+- [ ] T026 Implement flicker smoothing proof-of-concept: add presentable buffer with single-frame persistence toggle (
+`true` leaves pixels on for one extra frame) and expose HUD toggle for it.
+- [ ] T027 Align render loop to timers: execute CPU cycles separately, only call `RenderDisplayAsync` on 60Hz ticks and ensure timers drive updates.
+- [ ] T028 Add README.md with setup instructions (dotnet build/test, npm/playwright install, how to run `dotnet run` with custom port, ROM placement guidance).
 
 ## Dependencies
 - T001 → T004–T024 (project structure before changes)
