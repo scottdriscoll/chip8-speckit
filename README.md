@@ -2,6 +2,8 @@
 
 A Chip-8 emulator implemented in C# with a WebAssembly front end. The core interpreter runs inside `Chip8.Emulator.Core` while `Chip8.Emulator.Web` hosts a Blazor UI exposing the display, HUD telemetry, and keyboard controls directly in the browser.
 
+This project was completely vibe coded. I did not personally write a single line of code. I planned it with [Github Spec Kit](https://github.com/github/spec-kit) using Codex as the ai agent. Total time to create the project, including bug fixing and general tweaks and improvements, was about 4 hours.
+
 ![Chip-8 Emulator Screenshot](./emulator.png)
 
 ## Requirements
