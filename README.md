@@ -33,9 +33,5 @@ CHIP8_WEB_PORT=5179 npx playwright test --config=tests/Integration/playwright.co
 ## ROM Assets
 Place Chip-8 ROMs in `tests/Rom/Assets/`. The ROM test project copies them into the output directory for compatibility runs.
 
-## Flicker Reduction Plan
-- Evaluate frame-buffer persistence and 60 Hz render sync.
-- Optionally add smoothing toggle so pixels persist one extra frame.
-
 ## License
 MIT (see `LICENSE` if present).
