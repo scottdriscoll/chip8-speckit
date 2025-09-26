@@ -1,0 +1,43 @@
+@using Chip8.Emulator.Core.Diagnostics
+@using Microsoft.AspNetCore.Components
+@using System.Linq
+
+<div class="hud-keypad">
+    @if (LayoutProfile is null || LayoutProfile.Mapping.Count == 0)
+    {
+        <p class="hud-placeholder">Keyboard mapping unavailable.</p>
+    }
+    else
+    {
+        <div class="hud-keypad-grid">
+            @foreach (var key in _displayOrder)
+            {
+                var mapped = LayoutProfile.Mapping.TryGetValue(key, out var code) ? code : string.Empty;
+                var label = LayoutProfile.DisplayLabels.TryGetValue(key, out var display) ? display : key.ToString("X");
+                var isHighlighted = LayoutProfile.HighlightStates.TryGetValue(key, out var highlight) && highlight;
+                <div class="hud-keypad-key @(isHighlighted ? "active" : string.Empty)">
+                    <span class="hud-keypad-label">@label</span>
+                    <span class="hud-keypad-code">@mapped</span>
+                </div>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(LayoutProfile?.FallbackGuidance))
+    {
+        <p class="hud-keypad-fallback">@LayoutProfile!.FallbackGuidance</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public KeyboardLayoutProfile? LayoutProfile { get; set; }
+
+    private static readonly byte[] _displayOrder =
+    {
+        0x1, 0x2, 0x3, 0xC,
+        0x4, 0x5, 0x6, 0xD,
+        0x7, 0x8, 0x9, 0xE,
+        0xA, 0x0, 0xB, 0xF
+    };
+}

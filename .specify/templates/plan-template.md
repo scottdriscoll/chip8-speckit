@@ -34,20 +34,25 @@
 [Extract from feature spec: primary requirement + technical approach from research]
 
 ## Technical Context
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: C# (.NET 8 WebAssembly)  
+**Primary Dependencies**: [e.g., .NET WASM workload, SkiaSharp, WebAudio bridge or NEEDS CLARIFICATION]  
+**Storage**: [e.g., RAM buffer, IndexedDB persistence, browser local storage or N/A]  
+**Testing**: [e.g., xUnit, NUnit, Playwright WASM harness or NEEDS CLARIFICATION]  
+**Target Platform**: Browser (WebAssembly)
+**Project Type**: Single C# core with Web adapters  
+**Performance Goals**: Sustain 60 fps render loop and deterministic 60 Hz timers (adjust if feature-specific)  
+**Constraints**: Deterministic execution, bounded memory (<1 MB state), no alternate runtimes unless amended  
+**Scale/Scope**: [domain-specific, e.g., ROM count, UI depth, tooling additions or NEEDS CLARIFICATION]
 
 ## Constitution Check
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Principle I – Instruction-Accurate Emulation**: Confirm opcode semantics, memory layout, and ROM expectations remain faithful; document deviations.
+- **Principle II – Single C# Core, WebAssembly Delivery**: Ensure all new functionality lives in the shared C# core with thin WebAssembly adapters; flag any alternative runtimes.
+- **Principle III – Test-First Coverage**: Identify failing tests to author before implementation (opcode, timer, UI harness).
+- **Principle IV – Deterministic Timing & Input**: Validate timing assumptions (60 Hz) and centralized input mapping; plan for replay tooling when relevant.
+- **Principle V – Performance & Observability**: Capture expected frame rates, CPU budgets, and telemetry/metering updates.
+- Record mitigation steps for any exception in Complexity Tracking before proceeding.
 
 ## Project Structure
 
@@ -70,39 +75,24 @@ specs/[###-feature]/
   not include Option labels.
 -->
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
 src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+├── Core/
+│   ├── Cpu/
+│   ├── Memory/
+│   ├── Devices/
+│   └── Timing/
+├── Platform/
+│   └── Web/
+├── Rendering/
+└── Audio/
 
 tests/
-├── contract/
-├── integration/
-└── unit/
+├── Unit/
+├── Integration/
+└── Rom/
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+wasm/
+└── wwwroot/
 ```
 
 **Structure Decision**: [Document the selected structure and reference the real
@@ -132,24 +122,23 @@ directories captured above]
 ## Phase 1: Design & Contracts
 *Prerequisites: research.md complete*
 
-1. **Extract entities from feature spec** → `data-model.md`:
-   - Entity name, fields, relationships
-   - Validation rules from requirements
-   - State transitions if applicable
+1. **Extract emulator concerns from feature spec** → `data-model.md`:
+   - CPU/memory/register impacts
+   - Display/audio behavior
+   - State transitions and serialization needs
 
-2. **Generate API contracts** from functional requirements:
-   - For each user action → endpoint
-   - Use standard REST/GraphQL patterns
-   - Output OpenAPI/GraphQL schema to `/contracts/`
+2. **Generate opcode/device contracts** from functional requirements:
+   - For each opcode change → update instruction matrix under `/contracts/`
+   - For device interactions (display, keypad, timers) → define expected inputs/outputs
 
-3. **Generate contract tests** from contracts:
-   - One test file per endpoint
-   - Assert request/response schemas
+3. **Generate regression tests** from contracts:
+   - One test file per opcode/device change with expected register/memory/display assertions
+   - Include ROM-based tests when behavior spans multiple opcodes
    - Tests must fail (no implementation yet)
 
 4. **Extract test scenarios** from user stories:
-   - Each story → integration test scenario
-   - Quickstart test = story validation steps
+   - Each story → integration scenario (e.g., ROM playback, debugging tools)
+   - Quickstart test = instructions to validate in browser/WebAssembly build
 
 5. **Update agent file incrementally** (O(1) operation):
    - Run `.specify/scripts/bash/update-agent-context.sh codex`
@@ -167,11 +156,11 @@ directories captured above]
 
 **Task Generation Strategy**:
 - Load `.specify/templates/tasks-template.md` as base
-- Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
-- Each contract → contract test task [P]
-- Each entity → model creation task [P] 
-- Each user story → integration test task
-- Implementation tasks to make tests pass
+- Generate tasks from Phase 1 design docs (instruction matrix, data model, quickstart)
+- Each opcode/device contract → regression test task [P]
+- Each subsystem (CPU, memory, rendering, audio, input) → implementation task tied to C# core files
+- Each user story → integration/UI harness test task
+- Implementation tasks to make tests pass while respecting TDD
 
 **Ordering Strategy**:
 - TDD order: Tests before implementation 
@@ -207,13 +196,14 @@ directories captured above]
 - [ ] Phase 2: Task planning complete (/plan command - describe approach only)
 - [ ] Phase 3: Tasks generated (/tasks command)
 - [ ] Phase 4: Implementation complete
-- [ ] Phase 5: Validation passed
+- [ ] Phase 5: Validation passed (tests + 60 fps + deterministic replay)
 
 **Gate Status**:
 - [ ] Initial Constitution Check: PASS
 - [ ] Post-Design Constitution Check: PASS
 - [ ] All NEEDS CLARIFICATION resolved
 - [ ] Complexity deviations documented
+- [ ] Performance & observability impacts recorded (Principle V)
 
 ---
-*Based on Constitution v2.1.1 - See `/memory/constitution.md`*
+*Based on Constitution v1.0.0 - See `/memory/constitution.md`*

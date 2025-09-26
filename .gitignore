@@ -1,0 +1,55 @@
+# .NET build output
+bin/
+obj/
+**/bin/
+**/obj/
+
+# VS Code & IDE artifacts
+.vscode/
+*.code-workspace
+
+# User-specific files
+*.user
+*.suo
+*.userprefs
+
+# Logs & diagnostics
+*.log
+*.tlog
+
+# Generated packages
+*.nupkg
+*.snupkg
+
+# Cache
+.nuget/
+*.lock.json
+
+# Playwright
+playwright-report/
+playwright/.cache/
+
+# Blazor publish artifacts
+wwwroot/
+**/wwwroot/
+
+data/
+node_modules/
+
+# Coverage
+coverage/
+*.coverage
+*.coveragexml
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Specify/CLI outputs
+.codex/
+.specify/cache/
+
+# Misc
+*.tmp
+*.bak
+test-results

@@ -1,0 +1,228 @@
+@page "/"
+
+@implements IAsyncDisposable
+
+@inject EmulatorSnapshotPublisher SnapshotPublisher
+@inject InputMapper InputMapper
+@inject TimerService TimerService
+@inject WebAudioBeeper Beeper
+@inject Chip8Machine Machine
+@inject RuntimeHost RuntimeHost
+
+<div class="app-shell" tabindex="0" @onkeydown="HandleKeyDown" @onkeyup="HandleKeyUp">
+    <h1>Chip-8 Emulator</h1>
+
+    <section class="emulator-container">
+        <div class="display-column">
+            <canvas id="chip8-canvas" width="64" height="32"></canvas>
+            <div class="control-bar">
+                <div class="controls">
+                    <button @onclick="TogglePause">@(_paused ? "Resume" : "Pause")</button>
+                    <button @onclick="StepInstructionAsync" disabled="@(!_paused || !Machine.HasProgram)">Step</button>
+                    <button @onclick="ToggleMute">@(_muted ? "Unmute" : "Mute")</button>
+                </div>
+                <div class="rom-loader">
+                    <label class="input-label">
+                        Load ROM:
+                        <InputFile OnChange="OnRomSelectedAsync" Accept=".ch8,.rom" />
+                    </label>
+                </div>
+            </div>
+            <KeypadPanel LayoutProfile="_snapshot?.KeyboardLayout" />
+        </div>
+        <aside class="hud">
+            <TelemetryPanels Snapshot="_snapshot" RegisterDescriptors="_registerDescriptors" />
+        </aside>
+    </section>
+
+</div>
+
+@code {
+    private const int CpuCyclesPerTick = 8;
+
+    private EmulatorStateSnapshot? _snapshot;
+    private IReadOnlyList<HudValueDescriptor> _registerDescriptors = Array.Empty<HudValueDescriptor>();
+    private bool _paused;
+    private bool _muted;
+    private PeriodicTimer? _loopTimer;
+    private CancellationTokenSource? _loopCts;
+    private Task? _loopTask;
+    private EventHandler<EmulatorStateSnapshot>? _snapshotHandler;
+    private readonly bool[] _keyStates = new bool[16];
+    private readonly byte[] _displayScratch = new byte[Chip8Machine.DisplayWidth * Chip8Machine.DisplayHeight];
+    private bool _initialized;
+
+    protected override void OnInitialized()
+    {
+        _snapshotHandler = (_, snapshot) =>
+        {
+            _snapshot = snapshot;
+            _registerDescriptors = SnapshotPublisher.BuildRegisterDescriptors();
+            InvokeAsync(StateHasChanged);
+        };
+        SnapshotPublisher.SnapshotCreated += _snapshotHandler;
+
+        TimerService.LoadTimers(0, 0);
+        SnapshotPublisher.UpdateExecutionState(ExecutionState.Running);
+        SnapshotPublisher.UpdateKeyboard(InputMapper);
+
+        _loopTimer = new PeriodicTimer(TimeSpan.FromMilliseconds(16));
+        _loopCts = new CancellationTokenSource();
+        _loopTask = RunEmulatorLoopAsync(_loopCts.Token);
+        SnapshotPublisher.PublishSnapshot();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_initialized)
+        {
+            _initialized = true;
+            await RuntimeHost.InitializeAudioAsync();
+            await RuntimeHost.RegisterDebugHooksAsync();
+        }
+    }
+
+    private void TogglePause()
+    {
+        _paused = !_paused;
+        SnapshotPublisher.UpdateExecutionState(_paused ? ExecutionState.Paused : ExecutionState.Running);
+        SnapshotPublisher.PublishSnapshot();
+    }
+
+    private async Task StepInstructionAsync()
+    {
+        if (!_paused || !Machine.HasProgram)
+        {
+            return;
+        }
+
+        Machine.ExecuteCycles(_keyStates, 1);
+        TimerService.ForceTick();
+        await RenderDisplayAsync();
+    }
+
+    private void ToggleMute()
+    {
+        _muted = !_muted;
+        Beeper.ToggleMute(_muted);
+    }
+
+    private async Task OnRomSelectedAsync(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        using var stream = file.OpenReadStream(maxAllowedSize: 1_000_000);
+        using var memory = new MemoryStream();
+        await stream.CopyToAsync(memory);
+        var romBytes = memory.ToArray();
+
+        Machine.LoadRom(romBytes);
+        _paused = false;
+        SnapshotPublisher.UpdateExecutionState(ExecutionState.Running);
+        TimerService.LoadTimers(0, 0);
+        Array.Clear(_keyStates);
+        SnapshotPublisher.PublishSnapshot();
+        // Warm up a few frames so the first draw shows quickly
+        for (var i = 0; i < 150; i++)
+        {
+            Machine.ExecuteCycles(_keyStates, CpuCyclesPerTick);
+            TimerService.ForceTick();
+        }
+
+        SnapshotPublisher.PublishSnapshot();
+        await RenderDisplayAsync();
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs args)
+    {
+        if (string.IsNullOrWhiteSpace(args.Code))
+        {
+            return;
+        }
+
+        InputMapper.HandleKeyDown(args.Code);
+        if (InputMapper.TryResolveKeyCode(args.Code, out var nibble))
+        {
+            _keyStates[nibble] = true;
+            Machine.SetKeyState(nibble, true);
+        }
+
+        SnapshotPublisher.UpdateKeyboard(InputMapper);
+        SnapshotPublisher.PublishSnapshot();
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs args)
+    {
+        if (string.IsNullOrWhiteSpace(args.Code))
+        {
+            return;
+        }
+
+        InputMapper.HandleKeyUp(args.Code);
+        if (InputMapper.TryResolveKeyCode(args.Code, out var nibble))
+        {
+            _keyStates[nibble] = false;
+            Machine.SetKeyState(nibble, false);
+        }
+
+        SnapshotPublisher.UpdateKeyboard(InputMapper);
+        SnapshotPublisher.PublishSnapshot();
+    }
+
+    private async Task RunEmulatorLoopAsync(CancellationToken token)
+    {
+        if (_loopTimer is null)
+        {
+            return;
+        }
+
+        try
+        {
+            while (await _loopTimer.WaitForNextTickAsync(token))
+            {
+                if (_paused || !Machine.HasProgram)
+                {
+                    continue;
+                }
+
+                Machine.ExecuteCycles(_keyStates, CpuCyclesPerTick);
+                TimerService.ForceTick();
+                await RenderDisplayAsync();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RenderDisplayAsync()
+    {
+        Machine.CopyDisplayTo(_displayScratch.AsSpan());
+        await InvokeAsync(() => RuntimeHost.RenderDisplayAsync(_displayScratch, Chip8Machine.DisplayWidth, Chip8Machine.DisplayHeight).AsTask());
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_snapshotHandler is not null)
+        {
+            SnapshotPublisher.SnapshotCreated -= _snapshotHandler;
+        }
+
+        if (_loopCts is not null)
+        {
+            _loopCts.Cancel();
+        }
+
+        if (_loopTask is not null)
+        {
+            try
+            {
+                await _loopTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        _loopTimer?.Dispose();
+    }
+}

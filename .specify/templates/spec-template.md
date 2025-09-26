@@ -31,6 +31,7 @@
 - ✅ Focus on WHAT users need and WHY
 - ❌ Avoid HOW to implement (no tech stack, APIs, code structure)
 - 👥 Written for business stakeholders, not developers
+- 🎯 Capture emulator expectations: ROM types, timing accuracy, input/audio experience
 
 ### Section Requirements
 - **Mandatory sections**: Must be completed for every feature
@@ -43,12 +44,12 @@ When creating this spec from a user prompt:
 2. **Don't guess**: If the prompt doesn't specify something (e.g., "login system" without auth method), mark it
 3. **Think like a tester**: Every vague requirement should fail the "testable and unambiguous" checklist item
 4. **Common underspecified areas**:
-   - User types and permissions
-   - Data retention/deletion policies  
-   - Performance targets and scale
-   - Error handling behaviors
-   - Integration requirements
-   - Security/compliance needs
+   - Supported ROM formats and known test suites
+   - Display resolution, color treatment, and scaling behavior  
+   - Input mapping (keyboard, touch, gamepad) and remapping rules
+   - Audio expectations (on/off toggle, latency tolerance)
+   - Performance targets (60 fps, 60 Hz timers) and fallback plans
+   - Save-state/storage requirements (local storage, cloud sync)
 
 ---
 
@@ -68,19 +69,19 @@ When creating this spec from a user prompt:
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
+- **FR-001**: Emulator MUST load CHIP-8 ROMs from local upload and curated library sources.
+- **FR-002**: Emulator MUST render the 64×32 display (and Super-CHIP variants when relevant) with configurable scaling in-browser.
+- **FR-003**: Emulator MUST enforce 60 Hz timers and deterministic execution across runs given identical input sequences.
+- **FR-004**: Users MUST be able to configure keypad/input mappings for keyboard, touch, or gamepad.
+- **FR-005**: Emulator MUST surface performance and observability data (frame time, opcode throughput, audio status) per Principle V.
 
 *Example of marking unclear requirements:*
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
+- **FR-006**: Emulator MUST generate audio using [NEEDS CLARIFICATION: WebAudio beep behavior not specified - duration, frequency?]
+- **FR-007**: Emulator MUST persist save-states to [NEEDS CLARIFICATION: storage target not specified - IndexedDB, file download?]
 
 ### Key Entities *(include if feature involves data)*
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
+- **EmulatorState**: Registers (V0–VF), I register, program counter, stack, delay/sound timers.
+- **DisplayBuffer**: 64×32 (or Super-CHIP resolution) pixel state, scaling attributes, collision flags.
 
 ---
 

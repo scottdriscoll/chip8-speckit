@@ -7,28 +7,28 @@
 ```
 1. Load plan.md from feature directory
    → If not found: ERROR "No implementation plan found"
-   → Extract: tech stack, libraries, structure
+   → Extract: subsystems touched (CPU, memory, rendering, audio, platform)
 2. Load optional design documents:
-   → data-model.md: Extract entities → model tasks
-   → contracts/: Each file → contract test task
-   → research.md: Extract decisions → setup tasks
+   → data-model.md: Extract state/register changes → model tasks
+   → contracts/: Each opcode/device entry → regression test task
+   → research.md: Extract performance/observability decisions → setup tasks
 3. Generate tasks by category:
-   → Setup: project init, dependencies, linting
-   → Tests: contract tests, integration tests
-   → Core: models, services, CLI commands
-   → Integration: DB, middleware, logging
-   → Polish: unit tests, performance, docs
+   → Setup: project init, .NET WASM config, tooling
+   → Tests: opcode/unit, ROM conformance, Web UI harness
+   → Core: CPU, memory, timers, display, audio updates
+   → Integration: WebAssembly plumbing, input, instrumentation
+   → Polish: performance validation, docs, manual QA
 4. Apply task rules:
    → Different files = mark [P] for parallel
    → Same file = sequential (no [P])
-   → Tests before implementation (TDD)
+   → Tests before implementation (TDD, Principle III)
 5. Number tasks sequentially (T001, T002...)
 6. Generate dependency graph
 7. Create parallel execution examples
 8. Validate task completeness:
-   → All contracts have tests?
-   → All entities have models?
-   → All endpoints implemented?
+   → All contracts have regression tests?
+   → All subsystems touched have implementation coverage?
+   → Performance/observability updates captured?
 9. Return: SUCCESS (tasks ready for execution)
 ```
 
@@ -37,91 +37,90 @@
 - Include exact file paths in descriptions
 
 ## Path Conventions
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- C# core lives under `src/Core/`
+- Platform/WebAssembly adapters under `src/Platform/Web/`
+- Rendering/audio helpers under `src/Rendering/` and `src/Audio/`
+- Tests under `tests/Unit/`, `tests/Integration/`, `tests/Rom/`
 
 ## Phase 3.1: Setup
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Ensure `.csproj` and solution references include new core/module paths per plan
+- [ ] T002 Configure `.dotnet-wasm` build or equivalent workflow for browser preview
+- [ ] T003 [P] Update `wasm/wwwroot/index.html` scaffolding (CSS/JS hooks) if required by feature
 
 ## Phase 3.2: Tests First (TDD) ⚠️ MUST COMPLETE BEFORE 3.3
 **CRITICAL: These tests MUST be written and MUST FAIL before ANY implementation**
-- [ ] T004 [P] Contract test POST /api/users in tests/contract/test_users_post.py
-- [ ] T005 [P] Contract test GET /api/users/{id} in tests/contract/test_users_get.py
-- [ ] T006 [P] Integration test user registration in tests/integration/test_registration.py
-- [ ] T007 [P] Integration test auth flow in tests/integration/test_auth.py
+- [ ] T004 [P] Opcode regression test in `tests/Unit/Opcodes/Test_[OPCODE].cs`
+- [ ] T005 [P] ROM conformance scenario in `tests/Rom/Test_[ROM_NAME].cs`
+- [ ] T006 [P] Integration test covering browser flow in `tests/Integration/Test_[Feature].cs`
+- [ ] T007 Instrumentation test ensuring telemetry expectations in `tests/Integration/Test_Instrumentation.cs`
 
 ## Phase 3.3: Core Implementation (ONLY after tests are failing)
-- [ ] T008 [P] User model in src/models/user.py
-- [ ] T009 [P] UserService CRUD in src/services/user_service.py
-- [ ] T010 [P] CLI --create-user in src/cli/user_commands.py
-- [ ] T011 POST /api/users endpoint
-- [ ] T012 GET /api/users/{id} endpoint
-- [ ] T013 Input validation
-- [ ] T014 Error handling and logging
+- [ ] T008 Implement opcode logic in `src/Core/Cpu/Opcodes/[Opcode].cs`
+- [ ] T009 Update memory/timer handling in `src/Core/Timing/TimerService.cs`
+- [ ] T010 Refresh display pipeline in `src/Rendering/DisplayRenderer.cs`
+- [ ] T011 Extend input mapper in `src/Core/Input/InputMapper.cs`
+- [ ] T012 Wire telemetry counters in `src/Core/Diagnostics/FrameMetrics.cs`
+- [ ] T013 Update save-state persistence in `src/Core/Persistence/SaveStateStore.cs`
 
 ## Phase 3.4: Integration
-- [ ] T015 Connect UserService to DB
-- [ ] T016 Auth middleware
-- [ ] T017 Request/response logging
-- [ ] T018 CORS and security headers
+- [ ] T014 Connect WebAssembly host bindings in `src/Platform/Web/Interop/RuntimeHost.cs`
+- [ ] T015 Hook audio beeper into WebAudio bridge in `src/Audio/WebAudioBeeper.cs`
+- [ ] T016 Ensure async ROM loading & error surfaces in `src/Platform/Web/Services/RomLoader.cs`
+- [ ] T017 Update browser UI bindings in `wasm/wwwroot/js/app.js`
 
 ## Phase 3.5: Polish
-- [ ] T019 [P] Unit tests for validation in tests/unit/test_validation.py
-- [ ] T020 Performance tests (<200ms)
-- [ ] T021 [P] Update docs/api.md
-- [ ] T022 Remove duplication
-- [ ] T023 Run manual-testing.md
+- [ ] T018 [P] Performance validation script (60 fps, CPU <50%) in `tests/Integration/Performance/Test_FrameBudget.cs`
+- [ ] T019 [P] Documentation update in `docs/feature-[###-feature-name].md` (include observability notes)
+- [ ] T020 Telemetry dashboard widgets in `wasm/wwwroot/js/telemetry.js`
+- [ ] T021 Manual QA checklist run recorded in `docs/manual-testing.md`
+- [ ] T022 Cleanup dead code & ensure analyzers pass
 
 ## Dependencies
-- Tests (T004-T007) before implementation (T008-T014)
-- T008 blocks T009, T015
-- T016 blocks T018
-- Implementation before polish (T019-T023)
+- Tests (T004-T007) MUST precede implementation (T008-T013)
+- Implementation tasks block integration (T014-T017)
+- Integration proves before polish (T018-T022)
+- Telemetry updates (T012, T017, T020) coordinate to avoid conflicts
 
 ## Parallel Example
 ```
-# Launch T004-T007 together:
-Task: "Contract test POST /api/users in tests/contract/test_users_post.py"
-Task: "Contract test GET /api/users/{id} in tests/contract/test_users_get.py"
-Task: "Integration test registration in tests/integration/test_registration.py"
-Task: "Integration test auth in tests/integration/test_auth.py"
+# Launch regression tests together once plan.md ready:
+Task: "Opcode regression test in tests/Unit/Opcodes/Test_[OPCODE].cs"
+Task: "ROM conformance scenario in tests/Rom/Test_[ROM_NAME].cs"
+Task: "Integration test covering browser flow in tests/Integration/Test_[Feature].cs"
+Task: "Instrumentation test ensuring telemetry expectations in tests/Integration/Test_Instrumentation.cs"
 ```
 
 ## Notes
 - [P] tasks = different files, no dependencies
 - Verify tests fail before implementing
-- Commit after each task
-- Avoid: vague tasks, same file conflicts
+- Record performance metrics (fps, CPU, timer drift) when completing T018
+- Commit after each task with reference to TID
 
 ## Task Generation Rules
 *Applied during main() execution*
 
 1. **From Contracts**:
-   - Each contract file → contract test task [P]
-   - Each endpoint → implementation task
+   - Each opcode/device contract → regression test task [P]
+   - Each display/audio/input change → implementation task
    
-2. **From Data Model**:
-   - Each entity → model creation task [P]
-   - Relationships → service layer tasks
+2. **From Data Model / Emulator State**:
+   - Each register/state mutation → core implementation + unit test tasks
+   - New persistence or tooling requirements → supporting tasks (e.g., save-state, instrumentation)
    
 3. **From User Stories**:
-   - Each story → integration test [P]
-   - Quickstart scenarios → validation tasks
+   - Each player scenario → integration test [P]
+   - Quickstart scenarios → manual QA tasks
 
 4. **Ordering**:
-   - Setup → Tests → Models → Services → Endpoints → Polish
-   - Dependencies block parallel execution
+   - Setup → Tests → Core → Integration → Polish
+   - Deterministic execution and performance validation captured before completion
 
 ## Validation Checklist
 *GATE: Checked by main() before returning*
 
-- [ ] All contracts have corresponding tests
-- [ ] All entities have model tasks
-- [ ] All tests come before implementation
-- [ ] Parallel tasks truly independent
+- [ ] Every opcode/device change has a failing regression test
+- [ ] All integration stories covered by tests
+- [ ] Telemetry/performance tasks added when Principle V impacted
+- [ ] Parallel tasks modify independent files
 - [ ] Each task specifies exact file path
-- [ ] No task modifies same file as another [P] task
+- [ ] Manual QA/polish steps present for player validation

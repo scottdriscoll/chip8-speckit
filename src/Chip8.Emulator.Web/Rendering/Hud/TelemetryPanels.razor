@@ -1,0 +1,62 @@
+@using Chip8.Emulator.Core.Diagnostics
+@using Microsoft.AspNetCore.Components
+@using System.Collections.Generic
+
+<div class="hud-telemetry">
+    @if (Snapshot is null)
+    {
+        <p class="hud-placeholder">Telemetry unavailable.</p>
+    }
+    else
+    {
+        <section class="hud-panel hud-panel-status">
+            <header>Status</header>
+            <dl>
+                <dt>Execution</dt>
+                <dd>@Snapshot.ExecutionState.ToString()</dd>
+                <dt>Opcode</dt>
+                <dd>0x@Snapshot.CurrentOpcode.ToString("X4")</dd>
+                <dt>PC</dt>
+                <dd>0x@Snapshot.ProgramCounter.ToString("X4")</dd>
+                <dt>I</dt>
+                <dd>0x@Snapshot.IndexRegister.ToString("X4")</dd>
+            </dl>
+        </section>
+
+        <section class="hud-panel hud-panel-registers">
+            <header>Registers</header>
+            <ul>
+                @foreach (var value in RegisterDescriptors)
+                {
+                    <li class="@(value.Highlight ? "delta" : string.Empty)">@value.Label: @value.Value</li>
+                }
+            </ul>
+        </section>
+
+        <section class="hud-panel hud-panel-timers">
+            <header>Timers</header>
+            <p>Delay: @Snapshot.DelayTimer.ToString()</p>
+            <p>Sound: @Snapshot.SoundTimer.ToString()</p>
+        </section>
+
+        <section class="hud-panel hud-panel-stack">
+            <header>Stack</header>
+            <p>Depth: @Snapshot.StackDepth</p>
+        </section>
+
+        <section class="hud-panel hud-panel-audio">
+            <header>Audio</header>
+            <p>Muted: @(Snapshot.AudioChannel.IsMuted ? "Yes" : "No")</p>
+            <p>Active: @(Snapshot.AudioChannel.IsActive ? "Yes" : "No")</p>
+            <p>Frequency: @Snapshot.AudioChannel.Frequency Hz</p>
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public EmulatorStateSnapshot? Snapshot { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<HudValueDescriptor> RegisterDescriptors { get; set; } = Array.Empty<HudValueDescriptor>();
+}

@@ -1,50 +1,75 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- Sync Impact Report
+Version change: 0.0.0 → 1.0.0
+Modified principles:
+- none (initial ratification)
+Added sections:
+- Core Principles
+- Architecture Constraints
+- Delivery Workflow & Quality Gates
+- Governance
+Removed sections:
+- none
+Templates requiring updates:
+- .specify/templates/plan-template.md ✅ updated
+- .specify/templates/spec-template.md ✅ updated
+- .specify/templates/tasks-template.md ✅ updated
+Follow-up TODOs:
+- none
+-->
+
+# Speckit Chip-8 Emulator Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Instruction-Accurate Emulation
+- MUST implement the complete CHIP-8 instruction set according to authoritative references; any deviation requires documented justification before merge.
+- MUST keep emulator execution deterministic: the same ROM and input sequence MUST always reproduce identical frames, timers, and memory state.
+- MUST block releases on failing conformance ROMs or opcode regression tests.
+- Rationale: Fidelity preserves user trust in the emulator and prevents downstream debugging churn.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Single C# Core, WebAssembly Delivery
+- MUST maintain a single C# codebase that compiles to WebAssembly for browser delivery; platform-specific plumbing stays in thin adapters.
+- MUST express browser interactions (canvas, audio, input, persistence) through typed interfaces so they can be mocked in tests and reused for future hosts.
+- MUST avoid introducing alternative language runtimes unless the constitution is amended.
+- Rationale: A unified C# core simplifies maintenance, testing, and reuse across WebAssembly targets.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Test-First Coverage of Every Opcode and Device Contract
+- MUST write failing unit or integration tests for each opcode, timer behavior, and I/O pathway before implementation changes land.
+- MUST keep a living catalog of reference ROMs with automated CI execution; adding a ROM pairs with a regression test.
+- MUST capture bug fixes by first reproducing the fault in tests to prevent silent regressions.
+- Rationale: Test-first discipline prevents subtle emulation drift and anchors future refactors.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Deterministic Timing & Input Discipline
+- MUST schedule instruction execution in whole emulator cycles tied to CHIP-8’s 60 Hz timer semantics, independent of browser frame jitter.
+- MUST centralize keyboard/input mapping so key bindings stay consistent across platforms and are fully remappable.
+- MUST expose timing and input hooks for tooling (e.g., frame stepping, pause/resume) without compromising determinism.
+- Rationale: Stable timing and input handling enable accurate gameplay and reproducible debugging sessions.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Performance & Observability in the Browser
+- MUST sustain a minimum of 60 rendered frames per second on reference hardware while keeping CPU usage within agreed budgets (<50% of a single browser thread).
+- MUST provide lightweight instrumentation (frame time, opcode throughput, audio buffer health) surfaced via the Web UI and logs for diagnostics.
+- MUST default to efficient memory usage: no unbounded allocations per frame, and a documented upper bound on emulator state size.
+- Rationale: Responsive, observable WebAssembly delivery ensures the emulator remains enjoyable and supportable.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Architecture Constraints
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+- The core emulator lives in a portable C# project targeting the latest long-term support .NET runtime capable of WebAssembly export.
+- Rendering, audio, and persistence adapters MUST interact with the core through explicit interfaces under `src/Platform/` (or equivalent) to preserve testability.
+- Browser presentation uses WebAssembly (e.g., via Blazor WebAssembly or Uno); any additional frontend tooling MUST justify compliance with Principle II before adoption.
+- ROM loading, save-state, and configuration flows MUST remain asynchronous and non-blocking to keep the UI responsive.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Delivery Workflow & Quality Gates
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- Every change proposal includes a Constitution Check section in plan/spec/tasks outputs referencing the governing principles it touches.
+- CI MUST run unit, integration, and ROM conformance suites in headless WebAssembly mode before merge; red builds block releases.
+- Code review requires at least two maintainers or one maintainer plus automated gating that affirms constitutional compliance.
+- Releases MUST document performance benchmarks, browser compatibility results, and any principle deviations with remediation plans.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- Amendments require an RFC referencing affected principles, sign-off from two maintainers, and an updated Sync Impact Report.
+- Versioning follows semantic rules: MAJOR for principle removals or rewrites, MINOR for new principles/sections, PATCH for clarifications.
+- Ratified principles apply to all contributors; exceptions demand explicit temporary waivers recorded in the RFC log and sunset dates.
+- Compliance reviews occur each release cycle and during any platform shift (e.g., new browser runtime) to confirm adherence.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2025-09-25 | **Last Amended**: 2025-09-25
