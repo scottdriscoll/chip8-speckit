@@ -32,6 +32,8 @@ playwright/.cache/
 # Blazor publish artifacts
 wwwroot/
 **/wwwroot/
+!src/Chip8.Emulator.Web/wwwroot/
+!src/Chip8.Emulator.Web/wwwroot/index.html
 
 data/
 node_modules/

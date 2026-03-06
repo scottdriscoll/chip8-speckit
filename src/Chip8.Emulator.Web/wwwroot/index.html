@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chip-8 Emulator</title>
+    <base href="/" />
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: "Segoe UI", sans-serif;
+            background: #11161d;
+            color: #eef3f8;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at top, rgba(70, 120, 90, 0.22), transparent 40%),
+                linear-gradient(180deg, #18212b 0%, #0c1117 100%);
+        }
+
+        #app {
+            min-height: 100vh;
+        }
+
+        .app-container {
+            min-height: 100vh;
+        }
+
+        .app-shell {
+            min-height: 100vh;
+            padding: 2rem;
+            outline: none;
+        }
+
+        .app-shell h1 {
+            margin: 0 0 1.5rem;
+            font-size: 2rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .emulator-container {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 24rem);
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .display-column,
+        .hud {
+            padding: 1rem;
+            border: 1px solid rgba(210, 230, 255, 0.12);
+            border-radius: 1rem;
+            background: rgba(12, 18, 24, 0.74);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+        }
+
+        #chip8-canvas {
+            width: min(100%, 960px);
+            aspect-ratio: 2 / 1;
+            display: block;
+            image-rendering: pixelated;
+            border-radius: 0.75rem;
+            border: 1px solid rgba(184, 255, 209, 0.35);
+            background: #050808;
+            box-shadow: inset 0 0 40px rgba(120, 255, 170, 0.07);
+        }
+
+        .control-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+            margin: 1rem 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        button,
+        .input-label {
+            font: inherit;
+        }
+
+        button {
+            padding: 0.65rem 1rem;
+            border: 0;
+            border-radius: 999px;
+            background: #9ce27e;
+            color: #0d140e;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        button[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .input-label {
+            display: inline-flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .hud-telemetry {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .hud-panel {
+            padding: 0.9rem 1rem;
+            border-radius: 0.8rem;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .hud-panel header {
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #9ce27e;
+        }
+
+        .hud-panel dl,
+        .hud-panel ul,
+        .hud-panel p {
+            margin: 0;
+        }
+
+        .hud-panel dl {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 0.35rem 0.75rem;
+        }
+
+        .hud-panel ul {
+            padding-left: 1rem;
+            display: grid;
+            gap: 0.2rem;
+        }
+
+        .delta {
+            color: #ffd166;
+        }
+
+        .hud-keypad {
+            margin-top: 1rem;
+        }
+
+        .hud-keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.6rem;
+        }
+
+        .hud-keypad-key {
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+
+        .hud-keypad-key.active {
+            background: rgba(156, 226, 126, 0.2);
+            border-color: rgba(156, 226, 126, 0.7);
+        }
+
+        .hud-keypad-label,
+        .hud-keypad-code {
+            display: block;
+        }
+
+        .hud-keypad-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .hud-keypad-code {
+            margin-top: 0.2rem;
+            font-size: 0.8rem;
+            color: #a4b2c0;
+        }
+
+        .hud-placeholder,
+        .hud-keypad-fallback {
+            color: #a4b2c0;
+        }
+
+        @media (max-width: 900px) {
+            .app-shell {
+                padding: 1rem;
+            }
+
+            .emulator-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">Loading...</div>
+
+    <script>
+        (() => {
+            let latestSnapshot = null;
+            let audioContext = null;
+            let oscillator = null;
+            let gainNode = null;
+
+            const canvasState = {
+                context: null,
+                imageData: null,
+                width: 0,
+                height: 0
+            };
+
+            const getCanvasContext = (width, height) => {
+                const canvas = document.getElementById("chip8-canvas");
+                if (!canvas) {
+                    return null;
+                }
+
+                if (!canvasState.context || canvasState.width !== width || canvasState.height !== height) {
+                    canvas.width = width;
+                    canvas.height = height;
+                    const context = canvas.getContext("2d", { alpha: false });
+                    if (!context) {
+                        return null;
+                    }
+
+                    context.imageSmoothingEnabled = false;
+                    canvasState.context = context;
+                    canvasState.imageData = context.createImageData(width, height);
+                    canvasState.width = width;
+                    canvasState.height = height;
+                }
+
+                return canvasState.context;
+            };
+
+            window.chip8RenderDisplay = (pixels, width, height) => {
+                const context = getCanvasContext(width, height);
+                if (!context || !canvasState.imageData) {
+                    return;
+                }
+
+                const data = canvasState.imageData.data;
+                for (let i = 0; i < pixels.length; i++) {
+                    const on = pixels[i] > 0;
+                    const offset = i * 4;
+                    data[offset] = on ? 159 : 5;
+                    data[offset + 1] = on ? 240 : 8;
+                    data[offset + 2] = on ? 176 : 8;
+                    data[offset + 3] = 255;
+                }
+
+                context.putImageData(canvasState.imageData, 0, 0);
+            };
+
+            window.chip8DebugSetSnapshot = (snapshot) => {
+                latestSnapshot = snapshot;
+            };
+
+            window.chip8DebugGetSnapshot = () => latestSnapshot;
+
+            window.chip8DebugGetKeyState = () => {
+                const layout = latestSnapshot?.KeyboardLayout;
+                if (!layout?.DisplayLabels || !layout?.HighlightStates) {
+                    return {};
+                }
+
+                const state = {};
+                for (const [key, label] of Object.entries(layout.DisplayLabels)) {
+                    state[label] = Boolean(layout.HighlightStates[key]);
+                }
+
+                return state;
+            };
+
+            window.chip8AudioInterop = {
+                startBeep: async (frequency) => {
+                    try {
+                        if (!audioContext) {
+                            const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+                            if (!AudioContextCtor) {
+                                return;
+                            }
+
+                            audioContext = new AudioContextCtor();
+                        }
+
+                        if (audioContext.state === "suspended") {
+                            await audioContext.resume();
+                        }
+
+                        if (!gainNode) {
+                            gainNode = audioContext.createGain();
+                            gainNode.gain.value = 0.03;
+                            gainNode.connect(audioContext.destination);
+                        }
+
+                        if (!oscillator) {
+                            oscillator = audioContext.createOscillator();
+                            oscillator.type = "square";
+                            oscillator.connect(gainNode);
+                            oscillator.start();
+                        }
+
+                        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                    } catch (error) {
+                        console.warn("Failed to start Chip-8 beep", error);
+                    }
+                },
+                stopBeep: async () => {
+                    if (oscillator) {
+                        oscillator.stop();
+                        oscillator.disconnect();
+                        oscillator = null;
+                    }
+                }
+            };
+        })();
+    </script>
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+</html>
