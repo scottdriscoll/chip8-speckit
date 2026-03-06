@@ -15,11 +15,11 @@
                 <dt>Execution</dt>
                 <dd>@Snapshot.ExecutionState.ToString()</dd>
                 <dt>Opcode</dt>
-                <dd>0x@Snapshot.CurrentOpcode.ToString("X4")</dd>
+                <dd>@FormatWord(Snapshot.CurrentOpcode)</dd>
                 <dt>PC</dt>
-                <dd>0x@Snapshot.ProgramCounter.ToString("X4")</dd>
+                <dd>@FormatWord(Snapshot.ProgramCounter)</dd>
                 <dt>I</dt>
-                <dd>0x@Snapshot.IndexRegister.ToString("X4")</dd>
+                <dd>@FormatWord(Snapshot.IndexRegister)</dd>
             </dl>
         </section>
 
@@ -59,4 +59,6 @@
 
     [Parameter]
     public IReadOnlyList<HudValueDescriptor> RegisterDescriptors { get; set; } = Array.Empty<HudValueDescriptor>();
+
+    private static string FormatWord(ushort value) => $"0x{value:X4}";
 }
