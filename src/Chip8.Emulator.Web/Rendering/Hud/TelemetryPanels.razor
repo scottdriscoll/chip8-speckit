@@ -25,12 +25,20 @@
 
         <section class="hud-panel hud-panel-registers">
             <header>Registers</header>
-            <ul>
-                @foreach (var value in RegisterDescriptors)
-                {
-                    <li class="@(value.Highlight ? "delta" : string.Empty)">@value.Label: @value.Value</li>
-                }
-            </ul>
+            <div class="hud-register-columns">
+                <ul>
+                    @foreach (var value in LeftRegisterDescriptors)
+                    {
+                        <li class="@(value.Highlight ? "delta" : string.Empty)">@value.Label: @value.Value</li>
+                    }
+                </ul>
+                <ul>
+                    @foreach (var value in RightRegisterDescriptors)
+                    {
+                        <li class="@(value.Highlight ? "delta" : string.Empty)">@value.Label: @value.Value</li>
+                    }
+                </ul>
+            </div>
         </section>
 
         <section class="hud-panel hud-panel-timers">
@@ -61,4 +69,8 @@
     public IReadOnlyList<HudValueDescriptor> RegisterDescriptors { get; set; } = Array.Empty<HudValueDescriptor>();
 
     private static string FormatWord(ushort value) => $"0x{value:X4}";
+
+    private IReadOnlyList<HudValueDescriptor> LeftRegisterDescriptors => RegisterDescriptors.Take(8).ToArray();
+
+    private IReadOnlyList<HudValueDescriptor> RightRegisterDescriptors => RegisterDescriptors.Skip(8).Take(8).ToArray();
 }

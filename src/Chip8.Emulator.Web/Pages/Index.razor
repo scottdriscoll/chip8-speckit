@@ -14,7 +14,14 @@
 
     <section class="emulator-container">
         <div class="display-column">
-            <canvas id="chip8-canvas" width="64" height="32"></canvas>
+            <div class="stage-row">
+                <div class="screen-panel">
+                    <canvas id="chip8-canvas" width="64" height="32"></canvas>
+                </div>
+                <div class="keypad-panel">
+                    <KeypadPanel LayoutProfile="_snapshot?.KeyboardLayout" />
+                </div>
+            </div>
             <div class="control-bar">
                 <div class="controls">
                     <button @onclick="TogglePause">@(_paused ? "Resume" : "Pause")</button>
@@ -28,7 +35,6 @@
                     </label>
                 </div>
             </div>
-            <KeypadPanel LayoutProfile="_snapshot?.KeyboardLayout" />
         </div>
         <aside class="hud">
             <TelemetryPanels Snapshot="_snapshot" RegisterDescriptors="_registerDescriptors" />
