@@ -286,6 +286,13 @@
                 return state;
             };
 
+            window.chip8FocusAppShell = () => {
+                const shell = document.querySelector(".app-shell");
+                if (shell instanceof HTMLElement) {
+                    shell.focus();
+                }
+            };
+
             window.chip8AudioInterop = {
                 startBeep: async (frequency) => {
                     try {

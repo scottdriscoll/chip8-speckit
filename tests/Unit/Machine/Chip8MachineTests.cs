@@ -95,6 +95,27 @@ public class Chip8MachineTests
         Assert.Equal(0x03, memory[0x332]);
     }
 
+    [Fact]
+    public void WaitForKeyResumesAtFollowingInstructionAfterKeyPress()
+    {
+        var harness = new Chip8MachineHarness();
+        harness.LoadProgram(
+            0xF0, 0x0A,
+            0x61, 0x01
+        );
+
+        harness.Run(1);
+        Assert.Equal(Chip8Machine.ProgramStart, harness.Machine.ProgramCounter);
+
+        harness.Machine.SetKeyState(0xA, true);
+        Assert.Equal(Chip8Machine.ProgramStart + 2, harness.Machine.ProgramCounter);
+
+        harness.Run(1);
+        var registers = GetRegisters(harness.Machine);
+        Assert.Equal(0x0A, registers[0]);
+        Assert.Equal(0x01, registers[1]);
+    }
+
     private static byte[] GetRegisters(Chip8Machine machine)
     {
         var field = typeof(Chip8Machine).GetField("_registers", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);

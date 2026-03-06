@@ -38,6 +38,11 @@ public sealed class RuntimeHost : IWebAudioInterop
         await _jsRuntime.InvokeVoidAsync("chip8DebugSetSnapshot", snapshot);
     }
 
+    public ValueTask FocusAppShellAsync()
+    {
+        return _jsRuntime.InvokeVoidAsync("chip8FocusAppShell");
+    }
+
     public ValueTask RenderDisplayAsync(byte[] pixels, int width, int height)
     {
         return _jsRuntime.InvokeVoidAsync("chip8RenderDisplay", pixels, width, height);

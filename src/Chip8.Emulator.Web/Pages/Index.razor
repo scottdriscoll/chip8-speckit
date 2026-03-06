@@ -79,6 +79,7 @@
             _initialized = true;
             await RuntimeHost.InitializeAudioAsync();
             await RuntimeHost.RegisterDebugHooksAsync();
+            await RuntimeHost.FocusAppShellAsync();
         }
     }
 
@@ -130,6 +131,7 @@
 
         SnapshotPublisher.PublishSnapshot();
         await RenderDisplayAsync();
+        await RuntimeHost.FocusAppShellAsync();
     }
 
     private void HandleKeyDown(KeyboardEventArgs args)
@@ -144,6 +146,10 @@
         {
             _keyStates[nibble] = true;
             Machine.SetKeyState(nibble, true);
+        }
+        else if (Machine.IsWaitingForKey)
+        {
+            Machine.SetKeyState(0, true);
         }
 
         SnapshotPublisher.UpdateKeyboard(InputMapper);

@@ -39,6 +39,7 @@ public sealed class Chip8Machine
     }
 
     public bool HasProgram => _romLoaded;
+    public bool IsWaitingForKey => _waitingForKey;
 
     public ReadOnlySpan<byte> DisplayBuffer => _display;
     public ushort ProgramCounter => _programCounter;
@@ -147,6 +148,7 @@ public sealed class Chip8Machine
         {
             _registers[_waitingRegister] = nibble;
             _waitingForKey = false;
+            _programCounter += 2;
         }
     }
 
